@@ -1,15 +1,14 @@
 import sys
-sys.path.insert(1, '/opt/public/airlock/lihang/github/deepvac')
-from deepvac import DeepvacTrain, LOG 
+from deepvac import DeepvacTrain, LOG
 import torch
 import torch.utils.data as data
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
 
-from modules.model_db import Resnet18DB
-from modules.utils import preprocess, dice_loss, ohem_batch, cal_text_score
-from modules.loss_db import DBLoss
-from modules.train_loader import PseTrainDataset
+from modules.model_db import Resnet18DB, Mobilenetv3LargeDB
+from modules.utils import cal_text_score
+from modules.loss import DBLoss
+from modules.train_loader import DBTrainDataset
 from modules.metrics import runningScore
 
 import cv2
@@ -24,15 +23,8 @@ class DeepvacDB(DeepvacTrain):
     def initNetWithCode(self):
         if self.conf.train.arch == "resnet18":
             self.net = Resnet18DB()
-        elif self.conf.train.arch == "resnet50":
-            self.net = resnet50(pretrained=True, num_classes=7, scale=self.conf.test.scale)
-        elif self.conf.train.arch == "resnet101": 
-            self.net = resnet101(pretrained=True, num_classes=7, scale=self.conf.test.scale)
-        elif self.conf.train.arch == "resnet152":
-            self.net = resnet152(pretrained=True, num_classes=7, scale=self.conf.test.scale)
         elif self.conf.train.arch == "mv3":
-            self.net = mobilenetv3(kernel_num=7)
-            print('Mv3 Load !!!!!!!!!!!!')
+            self.net = Mobilenetv3LargeDB()
 
         self.net.to(self.device)
 
@@ -43,7 +35,7 @@ class DeepvacDB(DeepvacTrain):
         self.criterion = DBLoss()
 
     def initTrainLoader(self):
-        self.train_dataset = PseTrainDataset(self.conf.train)
+        self.train_dataset = DBTrainDataset(self.conf.train)
         self.train_loader = DataLoader(
             dataset = self.train_dataset,
             batch_size=self.conf.train.batch_size,
@@ -54,7 +46,7 @@ class DeepvacDB(DeepvacTrain):
         )
 
     def initValLoader(self):
-        self.val_dataset = PseTrainDataset(self.conf.val)
+        self.val_dataset = DBTrainDataset(self.conf.val)
         self.val_loader = DataLoader(
             dataset = self.val_dataset,
             batch_size=self.conf.val.batch_size,

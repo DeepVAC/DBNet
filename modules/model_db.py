@@ -1,5 +1,3 @@
-import sys
-sys.path.insert(1, '/opt/public/airlock/lihang/github/deepvac')
 import torch
 from torch import nn
 
@@ -49,6 +47,15 @@ class Resnet18DB(nn.Module):
     def __init__(self):
         super(Resnet18DB, self).__init__()
         self._fea = Resnet18FPN()
+        self._db = DBHead(512)
+
+    def forward(self, x):
+        return self._db(self._fea(x))
+
+class Mobilenetv3LargeDB(nn.Module):
+    def __init__(self):
+        super(Mobilenetv3LargeDB, self).__init__()
+        self._fea = Mobilenetv3LargeFPN()
         self._db = DBHead(512)
 
     def forward(self, x):

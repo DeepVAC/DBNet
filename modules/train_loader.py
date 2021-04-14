@@ -1,7 +1,4 @@
 import sys
-sys.path.insert(1, '/opt/public/airlock/lihang/github/deepvac')
-sys.path.append("/opt/public/airlock/lihang/pyclipper")
-sys.path.append("/opt/public/airlock/lihang/shapely")
 import numpy as np
 from PIL import Image
 from torch.utils import data
@@ -213,7 +210,7 @@ def draw_border_map(polygon, canvas, mask):
 
 
 
-class PseTrainDataset(data.Dataset):
+class DBTrainDataset(data.Dataset):
     def __init__(self, config):
         self.is_transform = config.is_transform
         self.aug = OcrDetectAugExecutor(config)
@@ -255,6 +252,38 @@ class PseTrainDataset(data.Dataset):
     def __len__(self):
         return len(self.img_paths)
 
+    def init_map_mask(self, img, tags, bboxes):
+        shrink_map = np.zeros(img.shape[0:2], dtype=np.float32)
+        shrink_mask = np.ones(img.shape[0:2], dtype=np.float32)
+        threshold_map = np.zeros(img.shape[0:2], dtype=np.float32)
+        threshold_mask = np.zeros(img.shape[0:2], dtype=np.float32)
+        if len(bboxes)<=0:
+            return shrink_map, shrink_mask, threshold_map, threshold_mask
+            
+        for i, box in enumerate(bboxes):
+            #bboxes[i] = box*[img.shape[1],img.shape[0]]*(len(box)//2).reshape(len(box)//2, 2)
+            bboxes[i] = np.array(box*([img.shape[1],img.shape[0]]*(len(box)//2))).reshape(len(box)//2, 2).astype('int32')
+        for i, box in enumerate(bboxes):
+            height = max(box[:, 1]) - min(box[:, 1])
+            width = max(box[:, 0]) - min(box[:, 0])
+            if not tags[i] or min(height, width) < 8:
+                cv2.fillPoly(shrink_mask, [box], 0)
+                continue
+                
+            shrinked = shrink_polygon_pyclipper(box, self.shrink_ratio)
+            if shrinked.size == 0:
+                cv2.fillPoly(shrink_mask, [box], 0)
+                continue
+            cv2.fillPoly(shrink_map, [shrinked.astype(np.int32)], 1)
+
+        for i, box in enumerate(bboxes):
+            if not tags[i]:
+                continue
+            draw_border_map(box, threshold_map, mask=threshold_mask)
+        threshold_map = threshold_map * (self.thresh_max - self.thresh_min) + self.thresh_min
+
+        return shrink_map, shrink_mask, threshold_map, threshold_mask
+
     def __getitem__(self, index):
         img_path = self.img_paths[index]
         gt_path = self.gt_paths[index]
@@ -265,32 +294,7 @@ class PseTrainDataset(data.Dataset):
         if self.is_transform:
             img = random_scale(img, self.img_size[0])
 
-        shrink_map = np.zeros(img.shape[0:2], dtype=np.float32)
-        shrink_mask = np.ones(img.shape[0:2], dtype=np.float32)
-        threshold_map = np.zeros(img.shape[0:2], dtype=np.float32)
-        threshold_mask = np.zeros(img.shape[0:2], dtype=np.float32)
-        if len(bboxes) > 0:
-            for i, box in enumerate(bboxes):
-                #bboxes[i] = box*[img.shape[1],img.shape[0]]*(len(box)//2).reshape(len(box)//2, 2)
-                bboxes[i] = np.array(box*([img.shape[1],img.shape[0]]*(len(box)//2))).reshape(len(box)//2, 2).astype('int32')
-            for i, box in enumerate(bboxes):
-                height = max(box[:, 1]) - min(box[:, 1])
-                width = max(box[:, 0]) - min(box[:, 0])
-                if not tags[i] or min(height, width) < 8:
-                    cv2.fillPoly(shrink_mask, [box], 0)
-                else:
-                    shrinked = shrink_polygon_pyclipper(box, self.shrink_ratio)
-                    if shrinked.size == 0:
-                        cv2.fillPoly(shrink_mask, [box], 0)
-                        continue
-                    cv2.fillPoly(shrink_map, [shrinked.astype(np.int32)], 1)
-
-            for i, box in enumerate(bboxes):
-                if not tags[i]:
-                    continue
-                draw_border_map(box, threshold_map, mask=threshold_mask)
-            threshold_map = threshold_map * (self.thresh_max - self.thresh_min) + self.thresh_min
-
+        shrink_map, shrink_mask, threshold_map, threshold_mask = self.init_map_mask(img, tags, bboxes)
         
         if self.is_transform:
             imgs = [img, shrink_map, shrink_mask, threshold_map, threshold_mask]

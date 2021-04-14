@@ -39,10 +39,8 @@ config.val.is_transform = True
 
 #test
 #config.model_path = 'your model path'
-config.test.fileline_data_path_prefix = 'your test image path'
-config.test.fileline_path = 'your test txt path'
+config.test.input_dir = 'your test image path'
 config.test.batch_size = 1
 config.test.shuffle = False
 config.test.arch = 'resnet18'
 config.test.long_size = 1280
-config.test.use_fileline = True

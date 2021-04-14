@@ -1,11 +1,4 @@
-'''MobileNetV3 in PyTorch.
-
-See the paper "Inverted Residuals and Linear Bottlenecks:
-Mobile Networks for Classification, Detection and Segmentation" for more details.
-'''
-
 import sys
-sys.path.insert(1, '/opt/public/airlock/lihang/github/deepvac')
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
