@@ -6,10 +6,9 @@ from torch.utils.data import DataLoader
 from torch.autograd import Variable
 
 from modules.model_db import Resnet18DB, Mobilenetv3LargeDB
-from modules.utils import cal_text_score
+from modules.utils import cal_text_score, runningScore
 from modules.loss import DBLoss
-from modules.metrics import runningScore
-from data.data_loader import DBTrainDataset
+from data.dataloader import DBTrainDataset
 
 import cv2
 import os

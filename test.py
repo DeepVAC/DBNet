@@ -63,8 +63,11 @@ class DeepvacDBTest(Deepvac):
 
         self.net.to(self.device)
 
+    def save_image(self, img, idx):
+        cv2.imwrite('output/vis/'+str(idx).zfill(3)+'.jpg', org_img)
+
     def report(self):
-        for idx, (org_img, img, labels) in enumerate(self.test_loader):
+        for index, (org_img, img, labels) in enumerate(self.test_loader):
             LOG.logI('progress: %d / %d'%(idx, len(self.test_loader)))
 
             img = img.to(self.device)
@@ -77,7 +80,7 @@ class DeepvacDBTest(Deepvac):
             box_list, score_list = self.post_process({'shape': [(org_img.shape[0], org_img.shape[1])]}, preds, is_output_polygon=self.is_output_polygon)
             box_list, score_list = box_list[0], score_list[0]
             if len(box_list) <=0:
-                cv2.imwrite('output/vis/'+str(idx).zfill(3)+'.jpg', org_img)
+                self.save_image(img, index)
                 continue
                 
             if is_output_polygon:
@@ -91,7 +94,7 @@ class DeepvacDBTest(Deepvac):
             for point in box_list:
                 point = point.astype(int)
                 cv2.polylines(org_img, [point], True, (0, 255, 0), 2)
-            cv2.imwrite('output/vis/'+str(idx).zfill(3)+'.jpg', org_img)
+            self.save_image(img, index)
 
 
     def process(self):
