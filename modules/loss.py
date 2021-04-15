@@ -4,7 +4,7 @@ import torch.nn as nn
 from deepvac.syszux_loss import BalanceCrossEntropyLoss, DiceLoss, MaskL1Loss
 
 class DBLoss(nn.Module):
-    def __init__(self, alpha=1.0, beta=10):
+    def __init__(self, deepvac_config):
         """
         Implement PSE Loss.
         :param alpha: binary_map loss
@@ -13,11 +13,11 @@ class DBLoss(nn.Module):
         :param reduction
         """
         super().__init__()
-        self.alpha = alpha
-        self.beta = beta
-        self.bce_loss = BalanceCrossEntropyLoss()
-        self.dice_loss = DiceLoss()
-        self.l1_loss = MaskL1Loss()
+        self.alpha = 1.0 if deepvac_config.alpha is None else deepvac_config.alpha
+        self.beta = 10 if deepvac_config.beta is None else deepvac_config.beta
+        self.bce_loss = BalanceCrossEntropyLoss(deepvac_config)
+        self.dice_loss = DiceLoss(deepvac_config)
+        self.l1_loss = MaskL1Loss(deepvac_config)
 
     def __call__(self, pred, batch):
         shrink_maps = pred[:, 0, :, :]

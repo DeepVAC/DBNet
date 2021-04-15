@@ -10,8 +10,8 @@ from shapely.geometry import Polygon
 def cal_text_score(texts, gt_texts, training_masks, running_metric_text):
     training_masks = training_masks.data.cpu().numpy()
     pred_text = torch.sigmoid(texts).data.cpu().numpy() * training_masks
-    pred_text[pred_text <= 0.5] = 0
-    pred_text[pred_text >  0.5] = 1
+    pred_text[pred_text <= 0.3] = 0
+    pred_text[pred_text >  0.3] = 1
     pred_text = pred_text.astype(np.int32)
     gt_text = gt_texts.data.cpu().numpy() * training_masks
     gt_text = gt_text.astype(np.int32)
@@ -74,7 +74,7 @@ class SegDetectorRepresenter():
         contours, _ = cv2.findContours((bitmap * 255).astype(np.uint8), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
         for contour in contours[:self.max_candidates]:
-            epsilon = 0.005 * cv2.arcLength(contour, True)
+            epsilon = 0.0005 * cv2.arcLength(contour, True)
             approx = cv2.approxPolyDP(contour, epsilon, True)
             points = approx.reshape((-1, 2))
             if points.shape[0] < 4:
