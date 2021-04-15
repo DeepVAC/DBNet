@@ -10,7 +10,7 @@ import torch.utils.data as data
 from torch.utils.data import DataLoader
 
 from modules.utils import SegDetectorRepresenter
-from modules.model_db import Resnet18DB
+from modules.model_db import Resnet18DB, Mobilenetv3LargeDB
 
 import time
 import cv2
@@ -59,7 +59,7 @@ class DeepvacDBTest(Deepvac):
         if self.conf.train.arch == "resnet18":
             self.net = Resnet18DB()
         elif self.conf.test.arch == "mv3":
-            self.net = Mobilenetv3DB()
+            self.net = Mobilenetv3LargeDB()
 
         self.net.to(self.device)
 
