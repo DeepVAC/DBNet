@@ -31,7 +31,7 @@ class DeepvacDB(DeepvacTrain):
         self.initAdamOptimizer()
 
     def initCriterion(self):
-        self.criterion = DBLoss()
+        self.criterion = DBLoss(self.conf)
 
     def initTrainLoader(self):
         self.train_dataset = DBTrainDataset(self.conf.train)
