@@ -10,8 +10,8 @@ from shapely.geometry import Polygon
 def cal_text_score(texts, gt_texts, training_masks, running_metric_text):
     training_masks = training_masks.data.cpu().numpy()
     pred_text = torch.sigmoid(texts).data.cpu().numpy() * training_masks
-    pred_text[pred_text <= 0.5] = 0
-    pred_text[pred_text >  0.5] = 1
+    pred_text[pred_text <= 0.3] = 0
+    pred_text[pred_text >  0.3] = 1
     pred_text = pred_text.astype(np.int32)
     gt_text = gt_texts.data.cpu().numpy() * training_masks
     gt_text = gt_text.astype(np.int32)
