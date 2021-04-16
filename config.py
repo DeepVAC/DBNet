@@ -44,3 +44,4 @@ config.test.batch_size = 1
 config.test.shuffle = False
 config.test.arch = 'resnet18'
 config.test.long_size = 1280
+cpnfig.test.is_output_polygon = True
