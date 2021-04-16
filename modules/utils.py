@@ -20,7 +20,7 @@ def cal_text_score(texts, gt_texts, training_masks, running_metric_text):
     return score_text
 
 class SegDetectorRepresenter():
-    def __init__(self, thresh=0.3, box_thresh=0.7, max_candidates=1000, unclip_ratio=1.5):
+    def __init__(self, thresh=0.3, box_thresh=0.5, max_candidates=1000, unclip_ratio=1.5):
         self.min_size = 3
         self.thresh = thresh
         self.box_thresh = box_thresh
