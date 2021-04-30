@@ -1,5 +1,5 @@
 import sys
-from deepvac import DeepvacTrain, LOG
+from deepvac import DeepvacTrain, LOG, is_ddp
 import torch
 import torch.utils.data as data
 from torch.utils.data import DataLoader
@@ -35,13 +35,16 @@ class DeepvacDB(DeepvacTrain):
 
     def initTrainLoader(self):
         self.train_dataset = DBTrainDataset(self.conf.train)
+        if is_ddp:
+            self.train_sampler = torch.utils.data.distributed.DistributedSampler(self.train_dataset)
         self.train_loader = DataLoader(
             dataset = self.train_dataset,
-            batch_size=self.conf.train.batch_size,
-            shuffle=self.conf.train.shuffle,
-            num_workers=self.conf.workers,
-            drop_last=self.conf.drop_last,
-            pin_memory=self.conf.pin_memory,
+            batch_size = self.conf.train.batch_size,
+            shuffle = False if is_ddp else self.conf.train.shuffle,
+            num_workers = self.conf.workers,
+            drop_last = self.conf.drop_last,
+            pin_memory = self.conf.pin_memory,
+            sampler=self.train_sampler if is_ddp else None
         )
 
     def initValLoader(self):
