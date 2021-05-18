@@ -2,9 +2,10 @@ import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from deepvac.syszux_mobilenet import MobileNetV3, MobileNetV3Large
-from deepvac.syszux_resnet import ResNet50, ResNet18
-from deepvac.syszux_modules import Conv2dBNReLU, Concat
+from deepvac.backbones.mobilenet import MobileNetV3, MobileNetV3Large
+from deepvac.backbones.resnet import ResNet50, ResNet18
+from deepvac.backbones.conv_layer import Conv2dBNReLU 
+from deepvac.backbones.op_layer import Concat
 
 class Mobilenetv3LargeBackbone(MobileNetV3Large):
     def __init__(self):
