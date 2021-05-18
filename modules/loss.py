@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from deepvac.loss.loss import BalanceCrossEntropyLoss, DiceLoss, MaskL1Loss
+from deepvac.loss import BalanceCrossEntropyLoss, DiceLoss, MaskL1Loss
 
 class DBLoss(nn.Module):
     def __init__(self, deepvac_config):

@@ -10,7 +10,7 @@ import torchvision.transforms as transforms
 import torch
 import os
 
-from deepvac.datasets.os_walk import OsWalkDataset
+from deepvac.datasets import OsWalkDataset
 
 random.seed(123456)
 
