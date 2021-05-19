@@ -2,11 +2,11 @@
 DeepVAC-compliant DBNet implementation.
 
 # 简介
-本项目实现了符合DeepVAC规范的OCR检测模型PSENet
+本项目实现了符合DeepVAC规范的OCR检测模型DBNet
 
 **项目依赖**
 
-- deepvac >= 0.3.1
+- deepvac >= 0.5.6
 - pytorch >= 1.8.0
 - torchvision >= 0.7.0
 - opencv-python
@@ -39,10 +39,21 @@ DeepVAC-compliant DBNet implementation.
   在config.py文件中作如下配置:
 
   ```python
-  config.train.data_dir = <your train image path>
-  config.train.gt_dir = <your train gt path>
-  config.val.data_dir = <your val image path>
-  config.val.gt_dir = <your val gt path>
+  # line 47-48
+  sample_path = <your train image path>
+  label_path = <your train gt path>
+  # line 66-67
+  sample_path = <your val image path>
+  label_path = <your val gt path>
+  ```
+
+## 5. 模型相关配置
+
+- DB backbone配置
+
+  ```python
+  # line 32, 目前支持resnet18，mv3large
+  arch = "resnet18"
   ```
 
 ## 4. 训练相关配置
@@ -50,37 +61,28 @@ DeepVAC-compliant DBNet implementation.
 - dataloader相关配置(config.train, config.val)
 
   ```python
-  config.train.batch_size = 12
-  config.train.shuffle = True
-  config.train.img_size = 640
-  config.train.is_transform = True    # 是否动态数据增强
-  config.train.arch = 'mv3'           # 网络backbone，支持mv3和resnet18
+  # line 49-63
+  is_transform = True        # 是否做数据增强
+  img_size = 640             # 训练图片大小(img_size, img_size)
+  config.datasets.DBTrainDataset = AttrDict()
+  config.datasets.DBTrainDataset.shrink_ratio = 0.4
+  config.datasets.DBTrainDataset.thresh_min = 0.3
+  config.datasets.DBTrainDataset.thresh_max = 0.7
+  config.core.train_dataset = DBTrainDataset(config, sample_path, label_path, is_transform, img_size)
+  config.core.train_loader = torch.utils.data.DataLoader(
+    dataset = config.core.train_dataset,
+    batch_size = 12,
+    shuffle = True,
+    num_workers = 4,
+    pin_memory = True,
+    sampler = None
+  )
   ```
 
 ## 5. 训练
 
-### 5.1 单卡训练
-
   ```
   python3 train.py
-  ```
-
-### 5.2 分布式训练
-
-  在config.py中修改如下配置:
-  ```python
-  #dist_url，单机多卡无需改动，多机训练一定要修改
-  config.dist_url = "tcp://localhost:27030"
-
-  #rank的数量，一定要修改
-  config.world_size = 2
-  ```
-
-  然后执行命令:
-
-  ```bash
-  python train.py --rank 0 --gpu 0
-  python train.py --rank 1 --gpu 1
   ```
 
 ## 6. 测试
@@ -88,17 +90,18 @@ DeepVAC-compliant DBNet implementation.
 - 测试相关配置
 
   ```python
-  config.test.input_dir = <your test image path>
-  config.test.batch_size = 1
-  config.test.shuffle = False
-  config.test.arch = 'resnet18'              # 模型backbone
-  config.test.long_size = 1280               # 输入图像的最长边
-  ```
-
-- 加载模型(.pth)
-
-  ```python
-  config.model_path = <your model path> 
+  # line 80-90
+  config.core.model_path = <your model path>            # 加载模型路径
+  config.core.is_output_polygon = True                  # 输出是否为多边形模型
+  sample_path = <your test image path>                     # 测试图片路径
+  config.core.test_dataset = DBTestDataset(config, sample_path, long_size = 1280)
+  config.core.test_loader = torch.utils.data.DataLoader(
+    dataset = config.core.test_dataset,
+    batch_size = 1,
+    shuffle = False,
+    num_workers = 0,
+    pin_memory = True
+  )
   ```
 
 - 运行测试脚本:
@@ -109,39 +112,22 @@ DeepVAC-compliant DBNet implementation.
 
 ## 7. 使用torchscript模型
 
-  如果训练过程中未开启config.script_model_path开关，可以在测试过程中转化torchscript模型
+  如果训练过程中未开启config.cast.script_model_dir开关，可以在测试过程中转化torchscript模型
 
   - 转换torchscript模型(.pt)
 
   ```python
-  config.script_model_path = "output/script.pt"
+  config.cast.script_model_dir = "output/script.pt"
   ```
 
-  按照步骤6完成测试，torchscript模型会保存至config.script_model_path指定位置
+  按照步骤6完成测试，torchscript模型会保存至config.cast.script_model_dir指定位置
 
   - 加载torchscript模型
 
   ```python
-  config.jit_model_path = <torchscript-model-path>
+  config.core.jit_model_path = <torchscript-model-path>
   ```
-
-## 8. 使用静态量化模型
-
-  如果训练过程中未开启config.static_quantize_dir开关，可以在测试过程中转化静态量化模型
-
-  - 转换静态量化模型(.sq)
-
-  ```python
-  config.static_quantize_dir = "output/script.sq"
-  ```
-
-  按照步骤6完成测试，静态量化模型会保存至config.static_quantize_dir指定位置
-
-  - 加载静态量化模型
-
-  ```python
-  config.jit_model_path = <static-quantize-model-path>
-  ```
+  然后按照步骤6测试，会读取script_model
 
 ## 更多功能
 
