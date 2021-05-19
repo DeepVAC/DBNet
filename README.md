@@ -38,77 +38,77 @@ DeepVAC-compliant DBNet implementation.
 - 数据集配置
   在config.py文件中作如下配置:
 
-  ```python
-  # line 47-48
-  sample_path = <your train image path>
-  label_path = <your train gt path>
-  # line 66-67
-  sample_path = <your val image path>
-  label_path = <your val gt path>
-  ```
+```python
+# line 47-48
+sample_path = <your train image path>
+label_path = <your train gt path>
+# line 66-67
+sample_path = <your val image path>
+label_path = <your val gt path>
+```
 
 ## 5. 模型相关配置
 
 - DB backbone配置
 
-  ```python
-  # line 32, 目前支持resnet18，mv3large
-  arch = "resnet18"
-  ```
+```python
+# line 32, 目前支持resnet18，mv3large
+arch = "resnet18"
+```
 
 ## 4. 训练相关配置
 
-- dataloader相关配置(config.train, config.val)
+- dataloader相关配置
 
-  ```python
-  # line 49-63
-  is_transform = True        # 是否做数据增强
-  img_size = 640             # 训练图片大小(img_size, img_size)
-  config.datasets.DBTrainDataset = AttrDict()
-  config.datasets.DBTrainDataset.shrink_ratio = 0.4
-  config.datasets.DBTrainDataset.thresh_min = 0.3
-  config.datasets.DBTrainDataset.thresh_max = 0.7
-  config.core.train_dataset = DBTrainDataset(config, sample_path, label_path, is_transform, img_size)
-  config.core.train_loader = torch.utils.data.DataLoader(
-    dataset = config.core.train_dataset,
-    batch_size = 12,
-    shuffle = True,
-    num_workers = 4,
-    pin_memory = True,
-    sampler = None
-  )
-  ```
+```python
+# line 49-63
+is_transform = True        # 是否做数据增强
+img_size = 640             # 训练图片大小(img_size, img_size)
+config.datasets.DBTrainDataset = AttrDict()
+config.datasets.DBTrainDataset.shrink_ratio = 0.4
+config.datasets.DBTrainDataset.thresh_min = 0.3
+config.datasets.DBTrainDataset.thresh_max = 0.7
+config.core.train_dataset = DBTrainDataset(config, sample_path, label_path, is_transform, img_size)
+config.core.train_loader = torch.utils.data.DataLoader(
+  dataset = config.core.train_dataset,
+  batch_size = 12,
+  shuffle = True,
+  num_workers = 4,
+  pin_memory = True,
+  sampler = None
+)
+```
 
 ## 5. 训练
 
-  ```
-  python3 train.py
-  ```
+```
+python3 train.py
+```
 
 ## 6. 测试
 
 - 测试相关配置
 
-  ```python
-  # line 80-90
-  config.core.model_path = <your model path>            # 加载模型路径
-  config.core.is_output_polygon = True                  # 输出是否为多边形模型
-  sample_path = <your test image path>                     # 测试图片路径
-  config.core.test_dataset = DBTestDataset(config, sample_path, long_size = 1280)
-  config.core.test_loader = torch.utils.data.DataLoader(
-    dataset = config.core.test_dataset,
-    batch_size = 1,
-    shuffle = False,
-    num_workers = 0,
-    pin_memory = True
-  )
-  ```
+```python
+# line 80-90
+config.core.model_path = <your model path>            # 加载模型路径
+config.core.is_output_polygon = True                  # 输出是否为多边形模型
+sample_path = <your test image path>                     # 测试图片路径
+config.core.test_dataset = DBTestDataset(config, sample_path, long_size = 1280)
+config.core.test_loader = torch.utils.data.DataLoader(
+  dataset = config.core.test_dataset,
+  batch_size = 1,
+  shuffle = False,
+  num_workers = 0,
+  pin_memory = True
+)
+```
 
 - 运行测试脚本:
 
-  ```bash
-  python3 test.py
-  ```
+```bash
+python3 test.py
+```
 
 ## 7. 使用torchscript模型
 
