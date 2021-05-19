@@ -10,7 +10,7 @@ import torchvision.transforms as transforms
 import torch
 import os
 
-from deepvac.datasets import OsWalkDataset
+from deepvac.datasets import OsWalkDataset, DatasetBase
 from deepvac.utils import addUserConfig
 
 random.seed(123456)
@@ -209,19 +209,16 @@ def draw_border_map(polygon, canvas, mask):
             xmin_valid - xmin:xmax_valid - xmax + width],
         canvas[ymin_valid:ymax_valid + 1, xmin_valid:xmax_valid + 1])
 
-class DBTrainDataset(data.Dataset):
-    def __init__(self, deepvac_config, data_dir, gt_dir, is_transform, img_size):
-        self.config = deepvac_config.datasets
-        self.transform = self.config.transform
-        self.composer = self.config.composer
-        
+class DBTrainDataset(DatasetBase):
+    def __init__(self, deepvac_config, sample_path, label_path, is_transform, img_size):
+        super(DBTrainDataset, self).__init__(deepvac_config)
         self.is_transform = is_transform
         self.img_size = img_size if (img_size is None or isinstance(img_size, tuple)) else (img_size, img_size)
         self.shrink_ratio = addUserConfig("shrink_ratio", self.config.shrink_ratio, 0.4)
         self.thresh_min = addUserConfig("thresh_min", self.config.thresh_min, 0.3)
         self.thresh_max = addUserConfig("thresh_max", self.config.thresh_max, 0.7)
-        data_dirs = [data_dir]
-        gt_dirs = [gt_dir]
+        data_dirs = [sample_path]
+        gt_dirs = [label_path]
         self.img_paths = []
         self.gt_paths = []
 
@@ -315,8 +312,8 @@ class DBTrainDataset(data.Dataset):
         return img, [shrink_map, shrink_mask, threshold_map, threshold_mask]
 
 class DBTestDataset(OsWalkDataset):
-    def __init__(self, deepvac_config, data_dir, long_size = 1280):
-        super(DBTestDataset, self).__init__(deepvac_config, data_dir)
+    def __init__(self, deepvac_config, sample_path, long_size = 1280):
+        super(DBTestDataset, self).__init__(deepvac_config, sample_path)
         self.long_size = long_size
     
     def scale(self, img):

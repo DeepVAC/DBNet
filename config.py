@@ -1,7 +1,7 @@
 import torch
 import torch.optim as optim
 
-from deepvac import config
+from deepvac import config, AttrDict
 
 from data.dataloader import DBTrainDataset, DBTestDataset
 from modules.model_db import Resnet18DB, Mobilenetv3LargeDB
@@ -12,7 +12,8 @@ config.core.output_dir = 'output'
 config.core.log_every = 100
 config.core.disable_git = True
 config.core.model_reinterpret_cast = True
-config.core.cast_state_dict_strict = False
+config.core.cast_state_dict_strict = True
+#config.core.jit_model_path = "./output/script.pt"
 
 ## -------------------- training ------------------
 ## train runtime
@@ -23,10 +24,8 @@ config.core.save_num = 1
 #config.core.tensorboard_port = "6007"
 #config.core.tensorboard_ip = None
 
-## -------------------- script and quantize ------------------
-#config.core.trace_model_dir = "./trace.pt"
-#config.core.static_quantize_dir = "./script.sq"
-#config.core.dynamic_quantize_dir = "./quantize.sq"
+## -------------------- script --------------------------
+#config.cast.script_model_dir = "./output/script.pt"
 
 ## -------------------- net and criterion ------------------
 arch = "resnet18"
@@ -49,9 +48,10 @@ data_dir = 'your train image dir'
 gt_dir = 'your train labels dir'
 is_transform = True
 img_size = 640
-config.datasets.shrink_ratio = 0.4
-config.datasets.thresh_min = 0.3
-config.datasets.thresh_max = 0.7
+config.datasets.DBTrainDataset = AttrDict()
+config.datasets.DBTrainDataset.shrink_ratio = 0.4
+config.datasets.DBTrainDataset.thresh_min = 0.3
+config.datasets.DBTrainDataset.thresh_max = 0.7
 config.core.train_dataset = DBTrainDataset(config, data_dir, gt_dir, is_transform, img_size)
 config.core.train_loader = torch.utils.data.DataLoader(
     dataset = config.core.train_dataset,

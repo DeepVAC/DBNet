@@ -88,7 +88,7 @@ class SegDetectorRepresenter():
 
             if points.shape[0] > 2:
                 box = self.unclip(points, unclip_ratio=self.unclip_ratio)
-                if len(box) > 1:
+                if len(box) != 1:
                     continue
             else:
                 continue

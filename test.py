@@ -16,7 +16,7 @@ class DeepvacDBTest(Deepvac):
 
     def testFly(self):
         for index, (org_img, img) in enumerate(self.config.test_loader):
-            LOG.logI('progress: %d / %d'%(index, len(self.config.test_loader)))
+            LOG.logI('progress: %d / %d'%(index+1, len(self.config.test_loader)))
             org_img = org_img.numpy().astype('uint8')[0]
 
             img = img.to(self.config.device)
@@ -44,6 +44,7 @@ class DeepvacDBTest(Deepvac):
                 point = point.astype(int)
                 cv2.polylines(org_img, [point], True, (0, 255, 0), 2)
             self.save_image(org_img, index)
+        self.config.sample = img
 
 if __name__ == '__main__':
     from config import config as deepvac_config
