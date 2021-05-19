@@ -39,12 +39,12 @@ DeepVAC-compliant DBNet implementation.
   在config.py文件中作如下配置:
 
   ```python
-  # line 48-49
-  data_dir = <your train image path>
-  gt_dir = <your train gt path>
+  # line 47-48
+  sample_path = <your train image path>
+  label_path = <your train gt path>
   # line 66-67
-  data_dir = <your val image path>
-  gt_dir = <your val gt path>
+  sample_path = <your val image path>
+  label_path = <your val gt path>
   ```
 
 ## 5. 模型相关配置
@@ -61,13 +61,14 @@ DeepVAC-compliant DBNet implementation.
 - dataloader相关配置(config.train, config.val)
 
   ```python
-  # line 50-63
-  is_transform = True      # 是否做数据增强
-  img_size = 640           # 训练图片大小
-  config.datasets.shrink_ratio = 0.4
-  config.datasets.thresh_min = 0.3
-  config.datasets.thresh_max = 0.7
-  config.core.train_dataset = DBTrainDataset(config, data_dir, gt_dir, is_transform, img_size)
+  # line 49-63
+  is_transform = True        # 是否做数据增强
+  img_size = 640             # 训练图片大小(img_size, img_size)
+  config.datasets.DBTrainDataset = AttrDict()
+  config.datasets.DBTrainDataset.shrink_ratio = 0.4
+  config.datasets.DBTrainDataset.thresh_min = 0.3
+  config.datasets.DBTrainDataset.thresh_max = 0.7
+  config.core.train_dataset = DBTrainDataset(config, sample_path, label_path, is_transform, img_size)
   config.core.train_loader = torch.utils.data.DataLoader(
     dataset = config.core.train_dataset,
     batch_size = 12,
@@ -92,8 +93,8 @@ DeepVAC-compliant DBNet implementation.
   # line 80-90
   config.core.model_path = <your model path>            # 加载模型路径
   config.core.is_output_polygon = True                  # 输出是否为多边形模型
-  data_dir = <your test image path>                     # 测试图片路径
-  config.core.test_dataset = DBTestDataset(config, data_dir, long_size = 1280)
+  sample_path = <your test image path>                     # 测试图片路径
+  config.core.test_dataset = DBTestDataset(config, sample_path, long_size = 1280)
   config.core.test_loader = torch.utils.data.DataLoader(
     dataset = config.core.test_dataset,
     batch_size = 1,

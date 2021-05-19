@@ -44,15 +44,15 @@ lambda_lr = lambda epoch: round ((1 - epoch/config.core.epoch_num) ** 0.9, 8)
 config.core.scheduler = optim.lr_scheduler.LambdaLR(config.core.optimizer, lr_lambda=lambda_lr)
 
 ## -------------------- loader ------------------
-data_dir = 'your train image dir'
-gt_dir = 'your train labels dir'
+sample_path = 'your train image dir'
+label_path = 'your train labels dir'
 is_transform = True
 img_size = 640
 config.datasets.DBTrainDataset = AttrDict()
 config.datasets.DBTrainDataset.shrink_ratio = 0.4
 config.datasets.DBTrainDataset.thresh_min = 0.3
 config.datasets.DBTrainDataset.thresh_max = 0.7
-config.core.train_dataset = DBTrainDataset(config, data_dir, gt_dir, is_transform, img_size)
+config.core.train_dataset = DBTrainDataset(config, sample_path, label_path, is_transform, img_size)
 config.core.train_loader = torch.utils.data.DataLoader(
     dataset = config.core.train_dataset,
     batch_size = 12,
@@ -63,11 +63,11 @@ config.core.train_loader = torch.utils.data.DataLoader(
 )
 
 ## -------------------- val ------------------
-data_dir = 'your val image dir'
-gt_dir = 'your val labels dir'
+sample_path = 'your val image dir'
+label_path = 'your val labels dir'
 is_transform = True
 img_size = 640
-config.core.val_dataset = DBTrainDataset(config, data_dir, gt_dir, is_transform, img_size)
+config.core.val_dataset = DBTrainDataset(config, sample_path, label_path, is_transform, img_size)
 config.core.val_loader = torch.utils.data.DataLoader(
     dataset = config.core.val_dataset,
     batch_size = 1,
@@ -79,8 +79,8 @@ config.core.val_loader = torch.utils.data.DataLoader(
 ## -------------------- test ------------------
 config.core.model_path = "your test model dir / pretrained weights"
 config.core.is_output_polygon = True
-data_dir = 'your test image dir'
-config.core.test_dataset = DBTestDataset(config, data_dir, long_size = 1280)
+sample_path = 'your test image dir'
+config.core.test_dataset = DBTestDataset(config, sample_path, long_size = 1280)
 config.core.test_loader = torch.utils.data.DataLoader(
     dataset = config.core.test_dataset,
     batch_size = 1,
