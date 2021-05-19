@@ -1,8 +1,7 @@
 import torch
 from torch import nn
 
-from deepvac.syszux_modules import initWeightsKaiming
-from deepvac.syszux_modules import Conv2dBNReLU
+from deepvac.backbones import initWeightsKaiming, Conv2dBNReLU
 
 from .model_fpn import Resnet18FPN, Resnet50FPN, Mobilenetv3LargeFPN
 

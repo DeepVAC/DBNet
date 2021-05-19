@@ -1,78 +1,29 @@
-import sys
-
-from deepvac.syszux_deepvac import Deepvac
-from deepvac.syszux_loader import OsWalkDataset
-from deepvac.syszux_log import LOG
-
-import torch
-import torchvision
-import torch.utils.data as data
-from torch.utils.data import DataLoader
-import torchvision.transforms as transforms
-
+from deepvac import LOG, Deepvac
 from modules.utils import SegDetectorRepresenter
-from modules.model_db import Resnet18DB, Mobilenetv3LargeDB
-
+import torch
 import time
 import cv2
 import os
-import numpy as np
-from PIL import Image
-
-class DBDataset(OsWalkDataset):
-    def __init__(self, config):
-        super(DBDataset, self).__init__(config)
-        self.long_size = config.long_size
-    
-    def scale(self, img):
-        h, w = img.shape[0:2]
-        scale = self.long_size * 1.0 / max(h, w)
-        h, w = int(h*scale), int(w*scale)
-        h += h%4
-        w += w%4
-        img = cv2.resize(img, (w, h))
-        return img
-
-    def __getitem__(self, idx):
-        img = super(DBDataset, self).__getitem__(idx)
-        org_img = img.copy()
-
-        img = img[:, :, [2, 1, 0]]
-        scaled_img = self.scale(img)
-        scaled_img = Image.fromarray(scaled_img)
-        scaled_img = scaled_img.convert('RGB')
-        scaled_img = transforms.ToTensor()(scaled_img)
-        scaled_img = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(scaled_img)
-        return org_img, scaled_img
 
 class DeepvacDBTest(Deepvac):
     def __init__(self, deepvac_config):
         super(DeepvacDBTest,self).__init__(deepvac_config)
-        self.initTestLoader()
         self.post_process = SegDetectorRepresenter()
-        self.is_output_polygon = True if self.conf.test.is_output_polygon is None else self.conf.test.is_output_polygon
-
-    def initNetWithCode(self):
-        if self.conf.train.arch == "resnet18":
-            self.net = Resnet18DB()
-        elif self.conf.test.arch == "mv3":
-            self.net = Mobilenetv3LargeDB()
-
-        self.net.to(self.device)
+        self.is_output_polygon = True if self.config.is_output_polygon is None else self.config.is_output_polygon
 
     def save_image(self, img, idx):
-        cv2.imwrite('output/vis/'+str(idx).zfill(3)+'.jpg', img)
+        cv2.imwrite(os.path.join(self.config.output_dir ,str(idx).zfill(3)+'.jpg'), img)
 
-    def report(self):
-        for index, (org_img, img) in enumerate(self.test_loader):
-            LOG.logI('progress: %d / %d'%(index, len(self.test_loader)))
+    def testFly(self):
+        for index, (org_img, img) in enumerate(self.config.test_loader):
+            LOG.logI('progress: %d / %d'%(index, len(self.config.test_loader)))
             org_img = org_img.numpy().astype('uint8')[0]
 
-            img = img.to(self.device)
+            img = img.to(self.config.device)
             start_time = time.time()
-            preds = self.net(img)
-            if str(self.device).__contains__('cuda'):
-                torch.cuda.synchronize(self.device)
+            preds = self.config.net(img)
+            if str(self.config.device).__contains__('cuda'):
+                torch.cuda.synchronize(self.config.device)
             print(time.time()-start_time)
 
             box_list, score_list = self.post_process({'shape': [(org_img.shape[0], org_img.shape[1])]}, preds, is_output_polygon=self.is_output_polygon)
@@ -94,23 +45,7 @@ class DeepvacDBTest(Deepvac):
                 cv2.polylines(org_img, [point], True, (0, 255, 0), 2)
             self.save_image(org_img, index)
 
-
-    def process(self):
-        self.report()
-
-    def initTestLoader(self):
-        self.test_dataset = DBDataset(self.conf.test)
-        self.test_loader = DataLoader(
-            dataset=self.test_dataset,
-            batch_size=self.conf.test.batch_size,
-            shuffle=self.conf.test.shuffle,
-            num_workers=self.conf.workers,
-            drop_last=True
-        )
-
-
 if __name__ == '__main__':
     from config import config as deepvac_config
     db = DeepvacDBTest(deepvac_config)
-    input_tensor = torch.rand(1,3,640,640)
-    db(input_tensor)
+    db()
