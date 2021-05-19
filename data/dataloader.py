@@ -217,9 +217,9 @@ class DBTrainDataset(data.Dataset):
         
         self.is_transform = is_transform
         self.img_size = img_size if (img_size is None or isinstance(img_size, tuple)) else (img_size, img_size)
-        self.shrink_ratio = addUserConfig("shrink_ratio", deepvac_config.core.shrink_ratio, 0.4)
-        self.thresh_min = addUserConfig("thresh_min", deepvac_config.core.thresh_min, 0.3)
-        self.thresh_max = addUserConfig("thresh_max", deepvac_config.core.thresh_max, 0.7)
+        self.shrink_ratio = addUserConfig("shrink_ratio", self.config.shrink_ratio, 0.4)
+        self.thresh_min = addUserConfig("thresh_min", self.config.thresh_min, 0.3)
+        self.thresh_max = addUserConfig("thresh_max", self.config.thresh_max, 0.7)
         data_dirs = [data_dir]
         gt_dirs = [gt_dir]
         self.img_paths = []
