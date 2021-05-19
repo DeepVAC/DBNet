@@ -2,7 +2,6 @@ import torch
 import torch.optim as optim
 
 from deepvac import config
-from deepvac import is_ddp
 
 from data.dataloader import DBTrainDataset, DBTestDataset
 from modules.model_db import Resnet18DB, Mobilenetv3LargeDB
@@ -47,28 +46,28 @@ config.core.scheduler = optim.lr_scheduler.LambdaLR(config.core.optimizer, lr_la
 
 ## -------------------- loader ------------------
 data_dir = 'your train image dir'
-gt_dir = 'your train image labels dir'
+gt_dir = 'your train labels dir'
 is_transform = True
 img_size = 640
-config.core.train_dataset = DBTrainDataset(data_dir, gt_dir, is_transform, img_size)
-if is_ddp:
-    train_sampler = torch.utils.data.distributed.DistributedSampler(config.core.train_dataset)
+config.core.shrink_ratio = 0.4
+config.core.thresh_min = 0.3
+config.core.thresh_max = 0.7
+config.core.train_dataset = DBTrainDataset(config, data_dir, gt_dir, is_transform, img_size)
 config.core.train_loader = torch.utils.data.DataLoader(
     dataset = config.core.train_dataset,
     batch_size = 12,
-    shuffle = False if is_ddp else True,
+    shuffle = True,
     num_workers = 4,
     pin_memory = True,
-    sampler = train_sampler if is_ddp else None
+    sampler = None
 )
 
 ## -------------------- val ------------------
-
 data_dir = 'your val image dir'
-gt_dir = 'your val image labels dir'
+gt_dir = 'your val labels dir'
 is_transform = True
 img_size = 640
-config.core.val_dataset = DBTrainDataset(data_dir, gt_dir, is_transform, img_size)
+config.core.val_dataset = DBTrainDataset(config, data_dir, gt_dir, is_transform, img_size)
 config.core.val_loader = torch.utils.data.DataLoader(
     dataset = config.core.val_dataset,
     batch_size = 1,

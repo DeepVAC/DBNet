@@ -2,7 +2,7 @@ import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from deepvac.backbones.mobilenet import MobileNetV3, MobileNetV3Large, ResNet50, ResNet18, Conv2dBNReLU, Concat
+from deepvac.backbones import MobileNetV3, MobileNetV3Large, ResNet50, ResNet18, Conv2dBNReLU, Concat
 
 class Mobilenetv3LargeBackbone(MobileNetV3Large):
     def __init__(self):

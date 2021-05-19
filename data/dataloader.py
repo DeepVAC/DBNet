@@ -11,6 +11,7 @@ import torch
 import os
 
 from deepvac.datasets import OsWalkDataset
+from deepvac.utils import addUserConfig
 
 random.seed(123456)
 
@@ -209,18 +210,18 @@ def draw_border_map(polygon, canvas, mask):
         canvas[ymin_valid:ymax_valid + 1, xmin_valid:xmax_valid + 1])
 
 class DBTrainDataset(data.Dataset):
-    def __init__(self, data_dir, gt_dir, is_transform, img_size):
-        self.is_transform = is_transform
+    def __init__(self, deepvac_config, data_dir, gt_dir, is_transform, img_size):
+        self.config = deepvac_config.datasets
+        self.transform = self.config.transform
+        self.composer = self.config.composer
         
+        self.is_transform = is_transform
         self.img_size = img_size if (img_size is None or isinstance(img_size, tuple)) else (img_size, img_size)
-
-        self.shrink_ratio = 0.4
-        self.thresh_min = 0.3
-        self.thresh_max = 0.7
-
+        self.shrink_ratio = addUserConfig("shrink_ratio", deepvac_config.core.shrink_ratio, 0.4)
+        self.thresh_min = addUserConfig("thresh_min", deepvac_config.core.thresh_min, 0.3)
+        self.thresh_max = addUserConfig("thresh_max", deepvac_config.core.thresh_max, 0.7)
         data_dirs = [data_dir]
         gt_dirs = [gt_dir]
-        
         self.img_paths = []
         self.gt_paths = []
 

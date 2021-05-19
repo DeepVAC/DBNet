@@ -14,8 +14,7 @@ class DeepvacDBTest(Deepvac):
     def save_image(self, img, idx):
         cv2.imwrite(os.path.join(self.config.output_dir ,str(idx).zfill(3)+'.jpg'), img)
 
-    def report(self):
-        self.config.net.eval()
+    def testFly(self):
         for index, (org_img, img) in enumerate(self.config.test_loader):
             LOG.logI('progress: %d / %d'%(index, len(self.config.test_loader)))
             org_img = org_img.numpy().astype('uint8')[0]
@@ -46,13 +45,7 @@ class DeepvacDBTest(Deepvac):
                 cv2.polylines(org_img, [point], True, (0, 255, 0), 2)
             self.save_image(org_img, index)
 
-
-    def process(self, input_tensor=None):
-        self.report()
-
-
 if __name__ == '__main__':
     from config import config as deepvac_config
     db = DeepvacDBTest(deepvac_config)
-    input_tensor = torch.rand(1,3,640,640)
-    db(input_tensor)
+    db()
