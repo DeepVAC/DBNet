@@ -39,10 +39,9 @@ DeepVAC-compliant DBNet implementation.
   在config.py文件中作如下配置:
 
 ```python
-# line 52-53
 config.sample_path = <your train image path>
 config.label_path = <your train gt path>
-# line 73-74
+
 config.sample_path = <your val image path>
 config.label_path = <your val gt path>
 ```
@@ -52,7 +51,7 @@ config.label_path = <your val gt path>
 - DB backbone配置
 
 ```python
-# line 36, 目前支持resnet18，mv3large
+# 目前支持resnet18，mv3large
 config.arch = "resnet18"
 ```
 
@@ -61,7 +60,6 @@ config.arch = "resnet18"
 - dataloader相关配置
 
 ```python
-# line 54-70
 config.is_transform = True        # 是否做数据增强
 config.img_size = 640             # 训练图片大小(img_size, img_size)
 config.datasets.DBTrainDataset = AttrDict()
@@ -92,7 +90,6 @@ python3 train.py
 - 测试相关配置
 
 ```python
-# line 88-99
 config.core.DBNetTest.model_path = <your model path>            # 加载模型路径
 # config.core.DBNetTest.jit_model_path = <torchscript-model-path> # torchscript model path
 config.core.DBNetTest.is_output_polygon = True                  # 输出是否为多边形模型
