@@ -97,12 +97,14 @@ config.core.DBNetTest.model_path = <your model path>            # 加载模型�
 # config.core.DBNetTest.jit_model_path = <torchscript-model-path> # torchscript model path
 config.core.DBNetTest.is_output_polygon = True                  # 输出是否为多边形模型
 config.sample_path = <your test image path>                     # 测试图片路径
+config.core.DBNetTrain.batch_size = 8
+config.core.DBNetTrain.num_workers = 4
 config.core.DBNetTest.test_dataset = DBTestDataset(config, config.sample_path, long_size = 1280)
 config.core.DBNetTest.test_loader = torch.utils.data.DataLoader(
   dataset = config.core.DBNetTest.test_dataset,
-  batch_size = 1,
+  batch_size = config.core.DBNetTrain.batch_size,
   shuffle = False,
-  num_workers = 0,
+  num_workers = config.core.DBNetTrain.num_workers,
   pin_memory = True
 )
 ```
