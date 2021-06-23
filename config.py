@@ -33,13 +33,13 @@ config.cast.TraceCast.model_dir = "./script.pt"
 config.cast.TraceCast.dynamic_quantize_dir = "./quantize.sq"
 
 ## -------------------- net and criterion ------------------
-arch = "resnet18"
-if arch == "resnet18":
+config.arch = "resnet18"
+if config.arch == "resnet18":
     config.core.DBNetTrain.net = Resnet18DB()
-elif arch == "mv3large":
+elif config.arch == "mv3large":
     config.core.DBNetTrain.net = Mobilenetv3LargeDB()
 else:
-    raise Exception("Architecture {} is not supported!".format(arch))
+    raise Exception("Architecture {} is not supported!".format(config.arch))
 config.core.DBNetTrain.criterion = DBLoss(config)
 
 ## -------------------- optimizer and scheduler ------------------
@@ -57,12 +57,14 @@ config.datasets.DBTrainDataset = AttrDict()
 config.datasets.DBTrainDataset.shrink_ratio = 0.4
 config.datasets.DBTrainDataset.thresh_min = 0.3
 config.datasets.DBTrainDataset.thresh_max = 0.7
+config.core.DBNetTrain.batch_size = 8
+config.core.DBNetTrain.num_workers = 4
 config.core.DBNetTrain.train_dataset = DBTrainDataset(config, config.sample_path, config.label_path, config.is_transform, config.img_size)
 config.core.DBNetTrain.train_loader = torch.utils.data.DataLoader(
     dataset = config.core.DBNetTrain.train_dataset,
-    batch_size = 12,
+    batch_size = config.core.DBNetTrain.batch_size,
     shuffle = True,
-    num_workers = 4,
+    num_workers = config.core.DBNetTrain.num_workers,
     pin_memory = True,
     sampler = None
 )
@@ -84,6 +86,7 @@ config.core.DBNetTrain.val_loader = torch.utils.data.DataLoader(
 ## -------------------- test ------------------
 config.core.DBNetTest = config.core.DBNetTrain.clone()
 config.core.DBNetTest.model_path = 'your test model dir / pretrained weights'
+# config.core.DBNetTest.jit_model_path = 'your torchscript model path'
 config.core.DBNetTest.is_output_polygon = True
 config.sample_path = 'your test image dir'
 config.core.DBNetTest.test_dataset = DBTestDataset(config, config.sample_path, long_size = 1280)
