@@ -99,5 +99,5 @@ config.core.DBNetTest.test_loader = torch.utils.data.DataLoader(
 )
 
 ## ------------------------- DDP ------------------
-config.core.DBNetTrain.dist_url = 'tcp://172.16.90.55:27030'
+config.core.DBNetTrain.dist_url = 'tcp://localhost:27030'
 config.core.DBNetTrain.world_size = 1
