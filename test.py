@@ -5,16 +5,16 @@ import time
 import cv2
 import os
 
-class DeepvacDBTest(Deepvac):
+class DBNetTest(Deepvac):
     def __init__(self, deepvac_config):
-        super(DeepvacDBTest,self).__init__(deepvac_config)
+        super(DBNetTest,self).__init__(deepvac_config)
         self.post_process = SegDetectorRepresenter()
         self.is_output_polygon = True if self.config.is_output_polygon is None else self.config.is_output_polygon
 
     def save_image(self, img, idx):
         cv2.imwrite(os.path.join(self.config.output_dir ,str(idx).zfill(3)+'.jpg'), img)
 
-    def testFly(self):
+    def doTest(self):
         for index, (org_img, img) in enumerate(self.config.test_loader):
             LOG.logI('progress: %d / %d'%(index+1, len(self.config.test_loader)))
             org_img = org_img.numpy().astype('uint8')[0]
@@ -48,5 +48,5 @@ class DeepvacDBTest(Deepvac):
 
 if __name__ == '__main__':
     from config import config as deepvac_config
-    db = DeepvacDBTest(deepvac_config)
+    db = DBNetTest(deepvac_config)
     db()
