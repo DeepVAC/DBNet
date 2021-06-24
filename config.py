@@ -1,7 +1,7 @@
 import torch
 import torch.optim as optim
 
-from deepvac import config, AttrDict, new
+from deepvac import AttrDict, new
 
 from data.dataloader import DBTrainDataset, DBTestDataset
 from modules.model_db import Resnet18DB, Mobilenetv3LargeDB
