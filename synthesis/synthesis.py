@@ -1,6 +1,8 @@
 import os
 
 def synthesis(deepvac_config):
+    if not os.path.exists(deepvac_config.output_dir):
+        os.makedirs(deepvac_config.output_dir)
     for i, (img, bbox_info, file_path) in enumerate(deepvac_config.test_loader):
         file_path = file_path[0]
         file_name = file_path.split('/')[-1]

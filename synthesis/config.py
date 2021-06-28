@@ -1,6 +1,6 @@
 import torch
 from deepvac import new, AttrDict
-from data.dataloader import CocoCVOcrDataset
+from deepvac.datasets import CocoCVOcrDataset
 
 config = new(None)
 
