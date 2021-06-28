@@ -7,9 +7,9 @@ config = new(None)
 config.datasets.CocoCVOcrDataset = AttrDict()
 config.datasets.CocoCVOcrDataset.auto_detect_subdir_with_basenum = 0
 
-config.sample_path_prefix = '/gemfield/hostpv/wangyuhang/gitlab/deepvac-ocr-det/JPEGImages'
-config.target_path = '/opt/public/airlock/lihang/zangzu_detect-235.json'
-config.output_dir = './gt'
+config.sample_path_prefix = 'your sample path prefix'
+config.target_path = 'your josn file path'
+config.output_dir = 'your output dir'
 
 config.test_dataset = CocoCVOcrDataset(config, config.sample_path_prefix, config.target_path)
 config.test_loader = torch.utils.data.DataLoader(config.test_dataset, batch_size=1, pin_memory=False)
