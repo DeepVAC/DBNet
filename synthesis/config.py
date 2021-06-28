@@ -8,7 +8,7 @@ config.datasets.CocoCVOcrDataset = AttrDict()
 config.datasets.CocoCVOcrDataset.auto_detect_subdir_with_basenum = 0
 
 config.sample_path_prefix = 'your sample path prefix'
-config.target_path = 'your josn file path'
+config.target_path = 'your json file path'
 config.output_dir = 'your output dir'
 
 config.test_dataset = CocoCVOcrDataset(config, config.sample_path_prefix, config.target_path)
