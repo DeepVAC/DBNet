@@ -7,9 +7,13 @@ config = new(None)
 config.datasets.CocoCVContoursDataset = AttrDict()
 config.datasets.CocoCVContoursDataset.auto_detect_subdir_with_basenum = 0
 
-config.sample_path_prefix = 'your sample path prefix'
-config.target_path = 'your json file path'
-config.output_dir = 'your output dir'
+sample_path_prefix_list = ['your sample path prefix list']
+target_path_list = ['your json file path list']
+config.output_label_dir = 'your output label dir'
+config.output_image_dir = 'your output image dir'
+config.show = True
 
-config.test_dataset = CocoCVContoursDataset(config, config.sample_path_prefix, config.target_path)
-config.test_loader = torch.utils.data.DataLoader(config.test_dataset, batch_size=1, pin_memory=False)
+config.test_loader_list = []
+for i in range(len(sample_path_prefix_list)):
+    test_dataset = CocoCVContoursDataset(config, sample_path_prefix_list[i], target_path_list[i])
+    config.test_loader_list.append(torch.utils.data.DataLoader(test_dataset, batch_size=1, pin_memory=False))
