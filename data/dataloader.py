@@ -235,6 +235,33 @@ def init_map_mask(img, bboxes, shrink_ratio, thresh_min, thresh_max, tags=None):
     threshold_map = threshold_map * (thresh_max - thresh_min) + thresh_min
     return shrink_map, shrink_mask, threshold_map, threshold_mask
 
+def augmentation(img, bboxes, shrink_ratio, thresh_min, thresh_max, img_size, tags=None):
+    img = random_scale(img, img_size[0])
+
+    shrink_map, shrink_mask, threshold_map, threshold_mask = init_map_mask(img, bboxes, shrink_ratio, thresh_min, thresh_max, tags)
+
+    imgs = [img, shrink_map, shrink_mask, threshold_map, threshold_mask]
+
+    imgs = random_horizontal_flip(imgs)
+    imgs = random_rotate(imgs)
+    imgs = random_crop(imgs, img_size)
+
+    img, shrink_map, shrink_mask, threshold_map, threshold_mask = imgs[0], imgs[1], imgs[2], imgs[3], imgs[4]
+
+    img = Image.fromarray(img)
+    img = img.convert('RGB')
+    img = transforms.ColorJitter(brightness = 32.0 / 255, saturation = 0.5)(img)
+
+    img = transforms.ToTensor()(img)
+    img = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(img)
+
+    shrink_map = torch.from_numpy(shrink_map).float()
+    shrink_mask = torch.from_numpy(shrink_mask).float()
+    threshold_map = torch.from_numpy(threshold_map).float()
+    threshold_mask = torch.from_numpy(threshold_mask).float()
+    
+    return img, [shrink_map, shrink_mask, threshold_map, threshold_mask]
+
 class DBTrainCocoDataset(CocoCVContoursDataset):
     def __init__(self, deepvac_config, sample_path_prefix, target_path, img_size):
         super(DBTrainCocoDataset, self).__init__(deepvac_config, sample_path_prefix, target_path)
@@ -253,55 +280,26 @@ class DBTrainCocoDataset(CocoCVContoursDataset):
             bbox = bbox.split(',')[:-1]
             bbox = [np.int(i) for i in bbox]
             bboxes[idx] = np.asarray(bbox) / ([w * 1.0, h * 1.0] * (len(bbox)//2))
-
-        img = random_scale(img, self.img_size[0])
-
-        shrink_map, shrink_mask, threshold_map, threshold_mask = init_map_mask(img, bboxes, self.shrink_ratio, self.thresh_min, self.thresh_max)
-
-        imgs = [img, shrink_map, shrink_mask, threshold_map, threshold_mask]
-
-        imgs = random_horizontal_flip(imgs)
-        imgs = random_rotate(imgs)
-        imgs = random_crop(imgs, self.img_size)
-
-        img, shrink_map, shrink_mask, threshold_map, threshold_mask = imgs[0], imgs[1], imgs[2], imgs[3], imgs[4]
-
-        img = Image.fromarray(img)
-        img = img.convert('RGB')
-        img = transforms.ColorJitter(brightness = 32.0 / 255, saturation = 0.5)(img)
-
-        img = transforms.ToTensor()(img)
-        img = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(img)
-
-        shrink_map = torch.from_numpy(shrink_map).float()
-        shrink_mask = torch.from_numpy(shrink_mask).float()
-        threshold_map = torch.from_numpy(threshold_map).float()
-        threshold_mask = torch.from_numpy(threshold_mask).float()
-        
-        return img, [shrink_map, shrink_mask, threshold_map, threshold_mask]
+        return augmentation(img, bboxes, self.shrink_ratio, self.thresh_min, self.thresh_max, self.img_size)
 
 class DBTrainDataset(DatasetBase):
-    def __init__(self, deepvac_config, sample_path, label_path, is_transform, img_size):
+    def __init__(self, deepvac_config, sample_path, label_path, img_size):
         super(DBTrainDataset, self).__init__(deepvac_config)
         self.img_size = img_size if (img_size is None or isinstance(img_size, tuple)) else (img_size, img_size)
         data_dirs = [sample_path]
         gt_dirs = [label_path]
         self.img_paths = []
         self.gt_paths = []
-
         for data_dir, gt_dir in zip(data_dirs, gt_dirs):
             img_names = os.listdir(data_dir)
-
             img_paths = []
             gt_paths = []
             for idx, img_name in enumerate(img_names):
                 img_path = data_dir + img_name
                 img_paths.append(img_path)
-
                 gt_name = 'gt_' + img_name[:-4] + '.txt'
                 gt_path = gt_dir + gt_name
                 gt_paths.append(gt_path)
-
             self.img_paths.extend(img_paths)
             self.gt_paths.extend(gt_paths)
 
@@ -317,35 +315,9 @@ class DBTrainDataset(DatasetBase):
     def __getitem__(self, index):
         img_path = self.img_paths[index]
         gt_path = self.gt_paths[index]
-
         img = get_img(img_path)
         bboxes, tags = get_bboxes(img, gt_path)
-        
-        img = random_scale(img, self.img_size[0])
-
-        shrink_map, shrink_mask, threshold_map, threshold_mask = init_map_mask(img, bboxes, self.shrink_ratio, self.thresh_min, self.thresh_max, tags)
-
-        imgs = [img, shrink_map, shrink_mask, threshold_map, threshold_mask]
-
-        imgs = random_horizontal_flip(imgs)
-        imgs = random_rotate(imgs)
-        imgs = random_crop(imgs, self.img_size)
-
-        img, shrink_map, shrink_mask, threshold_map, threshold_mask = imgs[0], imgs[1], imgs[2], imgs[3], imgs[4]
-
-        img = Image.fromarray(img)
-        img = img.convert('RGB')
-        img = transforms.ColorJitter(brightness = 32.0 / 255, saturation = 0.5)(img)
-
-        img = transforms.ToTensor()(img)
-        img = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(img)
-
-        shrink_map = torch.from_numpy(shrink_map).float()
-        shrink_mask = torch.from_numpy(shrink_mask).float()
-        threshold_map = torch.from_numpy(threshold_map).float()
-        threshold_mask = torch.from_numpy(threshold_mask).float()
-        
-        return img, [shrink_map, shrink_mask, threshold_map, threshold_mask]
+        return augmentation(img, bboxes, self.shrink_ratio, self.thresh_min, self.thresh_max, self.img_size, tags)
         
 class DBTestDataset(OsWalkDataset):
     def __init__(self, deepvac_config, sample_path, long_size = 1280):
@@ -364,7 +336,6 @@ class DBTestDataset(OsWalkDataset):
     def __getitem__(self, idx):
         img = super(DBTestDataset, self).__getitem__(idx)
         org_img = img.copy()
-
         img = img[:, :, [2, 1, 0]]
         scaled_img = self.scale(img)
         scaled_img = Image.fromarray(scaled_img)
