@@ -10,8 +10,7 @@ import torchvision.transforms as transforms
 import torch
 import os
 
-from deepvac.datasets import OsWalkDataset, DatasetBase
-from deepvac.utils import addUserConfig
+from deepvac.datasets import OsWalkDataset, DatasetBase, CocoCVContoursDataset
 
 random.seed(123456)
 
@@ -136,8 +135,6 @@ def shrink_polygon_pyclipper(polygon, shrink_ratio):
         shrinked = np.array(shrinked[0]).reshape(-1, 2)
     return shrinked
 
-
-
 def Distance(xs, ys, point_1, point_2):
     '''
     compute the distance from point to a line
@@ -157,7 +154,6 @@ def Distance(xs, ys, point_1, point_2):
     result = np.sqrt(square_distance_1 * square_distance_2 * square_sin / square_distance)
     result[cosin < 0] = np.sqrt(np.fmin(square_distance_1, square_distance_2))[cosin < 0]
     return result
-
 
 def draw_border_map(polygon, canvas, mask):
     polygon = np.array(polygon)
@@ -209,14 +205,85 @@ def draw_border_map(polygon, canvas, mask):
             xmin_valid - xmin:xmax_valid - xmax + width],
         canvas[ymin_valid:ymax_valid + 1, xmin_valid:xmax_valid + 1])
 
+def init_map_mask(img, bboxes, shrink_ratio, thresh_min, thresh_max, tags=None):
+    shrink_map = np.zeros(img.shape[0:2], dtype=np.float32)
+    shrink_mask = np.ones(img.shape[0:2], dtype=np.float32)
+    threshold_map = np.zeros(img.shape[0:2], dtype=np.float32)
+    threshold_mask = np.zeros(img.shape[0:2], dtype=np.float32)
+    if len(bboxes)<=0:
+        return shrink_map, shrink_mask, threshold_map, threshold_mask
+        
+    for i, box in enumerate(bboxes):
+        bboxes[i] = np.array(box*([img.shape[1],img.shape[0]]*(len(box)//2))).reshape(len(box)//2, 2).astype('int32')
+    for i, box in enumerate(bboxes):
+        height = max(box[:, 1]) - min(box[:, 1])
+        width = max(box[:, 0]) - min(box[:, 0])
+        if (tags and not tags[i]) or min(height, width) < 8:
+            cv2.fillPoly(shrink_mask, [box], 0)
+            continue
+            
+        shrinked = shrink_polygon_pyclipper(box, shrink_ratio)
+        if shrinked.size == 0:
+            cv2.fillPoly(shrink_mask, [box], 0)
+            continue
+        cv2.fillPoly(shrink_map, [shrinked.astype(np.int32)], 1)
+
+    for i, box in enumerate(bboxes):
+        if tags and not tags[i]:
+            continue
+        draw_border_map(box, threshold_map, mask=threshold_mask)
+    threshold_map = threshold_map * (thresh_max - thresh_min) + thresh_min
+    return shrink_map, shrink_mask, threshold_map, threshold_mask
+
+class DBTrainCocoDataset(CocoCVContoursDataset):
+    def __init__(self, deepvac_config, sample_path_prefix, target_path, img_size):
+        super(DBTrainCocoDataset, self).__init__(deepvac_config, sample_path_prefix, target_path)
+        self.img_size = img_size if (img_size is None or isinstance(img_size, tuple)) else (img_size, img_size)
+    
+    def auditConfig(self):
+        super(DBTrainCocoDataset, self).auditConfig()
+        self.shrink_ratio = self.addUserConfig("shrink_ratio", self.config.shrink_ratio, 0.4)
+        self.thresh_min = self.addUserConfig("thresh_min", self.config.thresh_min, 0.3)
+        self.thresh_max = self.addUserConfig("thresh_max", self.config.thresh_max, 0.7)
+
+    def __getitem__(self, index):
+        img, bboxes, file_path, _ = super(DBTrainCocoDataset, self).__getitem__(index)
+        h, w = img.shape[:2]
+        for idx, bbox in enumerate(bboxes):
+            bbox = bbox.split(',')[:-1]
+            bbox = [np.int(i) for i in bbox]
+            bboxes[idx] = np.asarray(bbox) / ([w * 1.0, h * 1.0] * (len(bbox)//2))
+
+        img = random_scale(img, self.img_size[0])
+
+        shrink_map, shrink_mask, threshold_map, threshold_mask = init_map_mask(img, bboxes, self.shrink_ratio, self.thresh_min, self.thresh_max)
+
+        imgs = [img, shrink_map, shrink_mask, threshold_map, threshold_mask]
+
+        imgs = random_horizontal_flip(imgs)
+        imgs = random_rotate(imgs)
+        imgs = random_crop(imgs, self.img_size)
+
+        img, shrink_map, shrink_mask, threshold_map, threshold_mask = imgs[0], imgs[1], imgs[2], imgs[3], imgs[4]
+
+        img = Image.fromarray(img)
+        img = img.convert('RGB')
+        img = transforms.ColorJitter(brightness = 32.0 / 255, saturation = 0.5)(img)
+
+        img = transforms.ToTensor()(img)
+        img = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(img)
+
+        shrink_map = torch.from_numpy(shrink_map).float()
+        shrink_mask = torch.from_numpy(shrink_mask).float()
+        threshold_map = torch.from_numpy(threshold_map).float()
+        threshold_mask = torch.from_numpy(threshold_mask).float()
+        
+        return img, [shrink_map, shrink_mask, threshold_map, threshold_mask]
+
 class DBTrainDataset(DatasetBase):
     def __init__(self, deepvac_config, sample_path, label_path, is_transform, img_size):
         super(DBTrainDataset, self).__init__(deepvac_config)
-        self.is_transform = is_transform
         self.img_size = img_size if (img_size is None or isinstance(img_size, tuple)) else (img_size, img_size)
-        self.shrink_ratio = addUserConfig("shrink_ratio", self.config.shrink_ratio, 0.4)
-        self.thresh_min = addUserConfig("thresh_min", self.config.thresh_min, 0.3)
-        self.thresh_max = addUserConfig("thresh_max", self.config.thresh_max, 0.7)
         data_dirs = [sample_path]
         gt_dirs = [label_path]
         self.img_paths = []
@@ -238,39 +305,14 @@ class DBTrainDataset(DatasetBase):
             self.img_paths.extend(img_paths)
             self.gt_paths.extend(gt_paths)
 
+    def auditConfig(self):
+        super(DBTrainDataset, self).auditConfig()
+        self.shrink_ratio = self.addUserConfig("shrink_ratio", self.config.shrink_ratio, 0.4)
+        self.thresh_min = self.addUserConfig("thresh_min", self.config.thresh_min, 0.3)
+        self.thresh_max = self.addUserConfig("thresh_max", self.config.thresh_max, 0.7)
+
     def __len__(self):
         return len(self.img_paths)
-
-    def init_map_mask(self, img, tags, bboxes):
-        shrink_map = np.zeros(img.shape[0:2], dtype=np.float32)
-        shrink_mask = np.ones(img.shape[0:2], dtype=np.float32)
-        threshold_map = np.zeros(img.shape[0:2], dtype=np.float32)
-        threshold_mask = np.zeros(img.shape[0:2], dtype=np.float32)
-        if len(bboxes)<=0:
-            return shrink_map, shrink_mask, threshold_map, threshold_mask
-            
-        for i, box in enumerate(bboxes):
-            bboxes[i] = np.array(box*([img.shape[1],img.shape[0]]*(len(box)//2))).reshape(len(box)//2, 2).astype('int32')
-        for i, box in enumerate(bboxes):
-            height = max(box[:, 1]) - min(box[:, 1])
-            width = max(box[:, 0]) - min(box[:, 0])
-            if not tags[i] or min(height, width) < 8:
-                cv2.fillPoly(shrink_mask, [box], 0)
-                continue
-                
-            shrinked = shrink_polygon_pyclipper(box, self.shrink_ratio)
-            if shrinked.size == 0:
-                cv2.fillPoly(shrink_mask, [box], 0)
-                continue
-            cv2.fillPoly(shrink_map, [shrinked.astype(np.int32)], 1)
-
-        for i, box in enumerate(bboxes):
-            if not tags[i]:
-                continue
-            draw_border_map(box, threshold_map, mask=threshold_mask)
-        threshold_map = threshold_map * (self.thresh_max - self.thresh_min) + self.thresh_min
-
-        return shrink_map, shrink_mask, threshold_map, threshold_mask
 
     def __getitem__(self, index):
         img_path = self.img_paths[index]
@@ -279,27 +321,21 @@ class DBTrainDataset(DatasetBase):
         img = get_img(img_path)
         bboxes, tags = get_bboxes(img, gt_path)
         
-        if self.is_transform:
-            img = random_scale(img, self.img_size[0])
+        img = random_scale(img, self.img_size[0])
 
-        shrink_map, shrink_mask, threshold_map, threshold_mask = self.init_map_mask(img, tags, bboxes)
-        
-        if self.is_transform:
-            imgs = [img, shrink_map, shrink_mask, threshold_map, threshold_mask]
+        shrink_map, shrink_mask, threshold_map, threshold_mask = init_map_mask(img, bboxes, self.shrink_ratio, self.thresh_min, self.thresh_max, tags)
 
-            imgs = random_horizontal_flip(imgs)
-            imgs = random_rotate(imgs)
-            imgs = random_crop(imgs, self.img_size)
+        imgs = [img, shrink_map, shrink_mask, threshold_map, threshold_mask]
 
-            img, shrink_map, shrink_mask, threshold_map, threshold_mask = imgs[0], imgs[1], imgs[2], imgs[3], imgs[4]
-        
-        if self.is_transform:
-            img = Image.fromarray(img)
-            img = img.convert('RGB')
-            img = transforms.ColorJitter(brightness = 32.0 / 255, saturation = 0.5)(img)
-        else:
-            img = Image.fromarray(img)
-            img = img.convert('RGB')
+        imgs = random_horizontal_flip(imgs)
+        imgs = random_rotate(imgs)
+        imgs = random_crop(imgs, self.img_size)
+
+        img, shrink_map, shrink_mask, threshold_map, threshold_mask = imgs[0], imgs[1], imgs[2], imgs[3], imgs[4]
+
+        img = Image.fromarray(img)
+        img = img.convert('RGB')
+        img = transforms.ColorJitter(brightness = 32.0 / 255, saturation = 0.5)(img)
 
         img = transforms.ToTensor()(img)
         img = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(img)
@@ -310,7 +346,7 @@ class DBTrainDataset(DatasetBase):
         threshold_mask = torch.from_numpy(threshold_mask).float()
         
         return img, [shrink_map, shrink_mask, threshold_map, threshold_mask]
-
+        
 class DBTestDataset(OsWalkDataset):
     def __init__(self, deepvac_config, sample_path, long_size = 1280):
         super(DBTestDataset, self).__init__(deepvac_config, sample_path)
